@@ -80,7 +80,6 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	form.CheckField(validator.PermittedInt(form.Expires, expiresValues...), "expires", fmt.Sprintf(validator.ChoiceValidationError, expiresValues))
 
 	if !form.Valid() {
-		fmt.Println(form.FieldErrors)
 		data := app.newTemplateData(r)
 		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "create.tmpl", data)
