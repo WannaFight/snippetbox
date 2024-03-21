@@ -11,6 +11,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+const (
+	flashSessionKey      = "flash"
+	authUserIDSessionKey = "authenticatedUserID"
+)
+
 type snippetCreateForm struct {
 	Title               string `form:"title"`
 	Content             string `form:"content"`
@@ -105,7 +110,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Snippet successfully created!")
+	app.sessionManager.Put(r.Context(), flashSessionKey, "Snippet successfully created!")
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
@@ -159,7 +164,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
+	app.sessionManager.Put(r.Context(), flashSessionKey, "Your signup was successful. Please log in.")
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
@@ -207,10 +212,17 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+	app.sessionManager.Put(r.Context(), authUserIDSessionKey, id)
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Logout the user...")
+	if err := app.sessionManager.RenewToken(r.Context()); err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	app.sessionManager.Remove(r.Context(), authUserIDSessionKey)
+	app.sessionManager.Put(r.Context(), flashSessionKey, "You've been logged out successfully!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
