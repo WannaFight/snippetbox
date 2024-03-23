@@ -95,7 +95,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	form.CheckField(validator.NotBlank(form.Title), "title", validator.BlankStringValidationError)
 	form.CheckField(validator.MaxChars(form.Title, titleMaxLen), "title", fmt.Sprintf(validator.TextTooLongValidationError, titleMaxLen))
 	form.CheckField(validator.NotBlank(form.Content), "content", validator.BlankStringValidationError)
-	form.CheckField(validator.PermittedInt(form.Expires, expiresValues...), "expires", fmt.Sprintf(validator.ChoiceValidationError, expiresValues))
+	form.CheckField(validator.PermittedValue(form.Expires, expiresValues...), "expires", fmt.Sprintf(validator.ChoiceValidationError, expiresValues))
 
 	if !form.Valid() {
 		data := app.newTemplateData(r)
