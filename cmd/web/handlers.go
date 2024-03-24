@@ -129,7 +129,6 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form := new(userSignupForm)
 
 	r.ParseForm()
-	fmt.Println("post form\n", r.PostForm)
 
 	if err := app.decodePostForm(r, &form); err != nil {
 		app.badRequest(w)
@@ -138,15 +137,11 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 	passwordLen := 8
 
-	fmt.Println("form\n", form)
-
 	form.CheckField(validator.NotBlank(form.Name), "name", validator.BlankStringValidationError)
 	form.CheckField(validator.NotBlank(form.Email), "email", validator.BlankStringValidationError)
 	form.CheckField(validator.ValidEmail(form.Email), "email", validator.NotValidEmailValidationError)
 	form.CheckField(validator.NotBlank(form.Password), "password", validator.BlankStringValidationError)
 	form.CheckField(validator.MinChars(form.Password, passwordLen), "password", fmt.Sprintf(validator.TextTooShortValidationError, passwordLen))
-
-	fmt.Println("form\n", form)
 
 	if !form.Valid() {
 		data := app.newTemplateData(r)
@@ -161,7 +156,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 			data := app.newTemplateData(r)
 			data.Form = form
-			app.render(w, http.StatusUnprocessableEntity, "signup.tmplva", data)
+			app.render(w, http.StatusUnprocessableEntity, "signup.tmpl", data)
 			return
 		}
 		app.serverError(w, err)
