@@ -101,3 +101,20 @@ func (ts *testServer) postForm(t *testing.T, url string, form url.Values) (int, 
 	bytes.TrimSpace(body)
 	return rs.StatusCode, rs.Header, string(body)
 }
+
+func (ts *testServer) loginUser(t *testing.T) {
+	// Extract CSRF token to make POST request later
+	_, _, body := ts.get(t, "/user/login")
+	csrfToken := extractCSRFToken(t, body)
+
+	// Login user with mocked credentials
+	form := url.Values{}
+	form.Add("email", "alice@example.com")
+	form.Add("password", "password")
+	form.Add("csrf_token", csrfToken)
+
+	code, _, _ := ts.postForm(t, "/user/login", form)
+	if code != http.StatusSeeOther {
+		t.Fatal("could not authenticate user")
+	}
+}
