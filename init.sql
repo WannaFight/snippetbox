@@ -1,12 +1,26 @@
-CREATE TABLE snippets (
+CREATE DATABASE IF NOT EXISTS snippetbox;
+CREATE DATABASE IF NOT EXISTS test_snippetbox;
+
+USE snippetbox;
+
+CREATE TABLE IF NOT EXISTS snippets (
     id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(100) NOT NULL,
     content TEXT NOT NULL,
     created DATETIME NOT NULL,
     expires DATETIME NOT NULL
 );
-
 CREATE INDEX idx_snippets_created ON snippets(created);
+
+CREATE TABLE sessions (
+    token CHAR(43) PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry TIMESTAMP(6) NOT NULL
+);
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
+
+CREATE USER IF NOT EXISTS 'web'@'%' IDENTIFIED BY 'webpass';
+GRANT SELECT, INSERT, UPDATE, DELETE ON snippetbox.* TO 'web'@'%';
 
 INSERT INTO snippets (title, content, created, expires) VALUES (
     'An old silent pond',
