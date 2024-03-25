@@ -73,3 +73,7 @@ func PermittedValue[T comparable](value T, permittedValues ...T) bool {
 	}
 	return false
 }
+
+func Equal[T comparable](value, otherValue T) bool {
+	return value == otherValue
+}

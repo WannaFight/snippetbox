@@ -17,6 +17,11 @@ const (
 	loginRedirectTo      = "loginRedirectTo"
 )
 
+const (
+	passwordMinLength     = 8
+	snippetTitleMaxLength = 100
+)
+
 type snippetCreateForm struct {
 	Title               string `form:"title"`
 	Content             string `form:"content"`
@@ -35,6 +40,13 @@ type userLoginForm struct {
 	Email               string `form:"email"`
 	Password            string `form:"password"`
 	validator.Validator `form:"-"`
+}
+
+type changePasswordForm struct {
+	CurrentPassword         string `form:"currentPassword"`
+	NewPassword             string `form:"newPassword"`
+	NewPasswordConfirmation string `form:"newPasswordConfirmation"`
+	validator.Validator     `form:"-"`
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
@@ -99,11 +111,10 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	titleMaxLen := 100
 	expiresValues := []int{1, 7, 365}
 
 	form.CheckField(validator.NotBlank(form.Title), "title", validator.BlankStringValidationError)
-	form.CheckField(validator.MaxChars(form.Title, titleMaxLen), "title", fmt.Sprintf(validator.TextTooLongValidationError, titleMaxLen))
+	form.CheckField(validator.MaxChars(form.Title, snippetTitleMaxLength), "title", fmt.Sprintf(validator.TextTooLongValidationError, snippetTitleMaxLength))
 	form.CheckField(validator.NotBlank(form.Content), "content", validator.BlankStringValidationError)
 	form.CheckField(validator.PermittedValue(form.Expires, expiresValues...), "expires", fmt.Sprintf(validator.ChoiceValidationError, expiresValues))
 
@@ -141,13 +152,11 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordLen := 8
-
 	form.CheckField(validator.NotBlank(form.Name), "name", validator.BlankStringValidationError)
 	form.CheckField(validator.NotBlank(form.Email), "email", validator.BlankStringValidationError)
 	form.CheckField(validator.ValidEmail(form.Email), "email", validator.NotValidEmailValidationError)
 	form.CheckField(validator.NotBlank(form.Password), "password", validator.BlankStringValidationError)
-	form.CheckField(validator.MinChars(form.Password, passwordLen), "password", fmt.Sprintf(validator.TextTooShortValidationError, passwordLen))
+	form.CheckField(validator.MinChars(form.Password, passwordMinLength), "password", fmt.Sprintf(validator.TextTooShortValidationError, passwordMinLength))
 
 	if !form.Valid() {
 		data := app.newTemplateData(r)
@@ -253,4 +262,47 @@ func (app *application) accountView(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	data.CurrentUser = user
 	app.render(w, http.StatusOK, "account.tmpl", data)
+}
+
+func (app *application) accountPasswordUpdate(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.Form = changePasswordForm{}
+	app.render(w, http.StatusOK, "password.tmpl", data)
+}
+
+func (app *application) accountPasswordUpdatePost(w http.ResponseWriter, r *http.Request) {
+	form := new(changePasswordForm)
+
+	if err := app.decodePostForm(r, &form); err != nil {
+		app.badRequest(w)
+		return
+	}
+
+	form.CheckField(validator.MinChars(form.CurrentPassword, passwordMinLength), "currentPassword", fmt.Sprintf(validator.TextTooShortValidationError, passwordMinLength))
+	form.CheckField(validator.MinChars(form.NewPassword, passwordMinLength), "newPassword", fmt.Sprintf(validator.TextTooShortValidationError, passwordMinLength))
+	form.CheckField(validator.MinChars(form.NewPasswordConfirmation, passwordMinLength), "newPasswordConfirmation", fmt.Sprintf(validator.TextTooShortValidationError, passwordMinLength))
+	form.CheckField(validator.Equal(form.NewPassword, form.NewPasswordConfirmation), "newPasswordConfirmation", "Passwords do not match")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "password.tmpl", data)
+		return
+	}
+
+	id := app.sessionManager.GetInt(r.Context(), authUserIDSessionKey)
+	if err := app.users.PasswordUpdate(id, form.CurrentPassword, form.NewPassword); err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddFieldError("currentPassword", "Wrong password")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, http.StatusUnprocessableEntity, "password.tmpl", data)
+			return
+		}
+		app.serverError(w, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), flashSessionKey, "Password changed successfully!")
+	http.Redirect(w, r, "/account/view", http.StatusSeeOther)
 }

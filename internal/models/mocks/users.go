@@ -34,7 +34,7 @@ func (m *UserModel) Exists(id int) (bool, error) {
 }
 
 func (m *UserModel) Get(id int) (*models.User, error) {
-	if id != 1 {
+	if id == 1 {
 		u := &models.User{
 			ID:      1,
 			Name:    "Alice",
@@ -44,4 +44,11 @@ func (m *UserModel) Get(id int) (*models.User, error) {
 		return u, nil
 	}
 	return nil, models.ErrNoRecord
+}
+
+func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	if id == 1 && currentPassword == "password" {
+		return nil
+	}
+	return models.ErrInvalidCredentials
 }
