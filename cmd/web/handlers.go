@@ -14,6 +14,7 @@ import (
 const (
 	flashSessionKey      = "flash"
 	authUserIDSessionKey = "authenticatedUserID"
+	loginRedirectTo      = "loginRedirectTo"
 )
 
 type snippetCreateForm struct {
@@ -217,7 +218,13 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Put(r.Context(), authUserIDSessionKey, id)
-	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
+
+	redirectTo := app.sessionManager.PopString(r.Context(), loginRedirectTo)
+	if redirectTo == "" {
+		redirectTo = "/snippet/create"
+	}
+
+	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
