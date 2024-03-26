@@ -1,0 +1,7 @@
+tmp/
+tls/
+.git/
+.gitignore
+*.md
+Makefile
+*.yml

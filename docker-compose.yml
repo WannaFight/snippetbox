@@ -3,6 +3,17 @@ version: "3.8"
 name: snippetbox
 
 services:
+  back:
+    build:
+      dockerfile: docker/go/Dockerfile
+      context: .
+    volumes:
+      - ./cmd/:/app/cmd
+      - ./internal/:/app/internal
+      - ./ui/:/app/ui
+    ports:
+      - "4000:4000"
+    command: air
   mysql:
     image: mysql
     volumes:
